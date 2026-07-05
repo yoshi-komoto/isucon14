@@ -49,13 +49,18 @@ func ownerAuthMiddleware(next http.Handler) http.Handler {
 		}
 		accessToken := c.Value
 		owner := &Owner{}
-		if err := db.GetContext(ctx, owner, "SELECT * FROM owners WHERE access_token = ?", accessToken); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+		if cached, found := ownerCache.Get(accessToken); found {
+			owner = cached.(*Owner)
+		} else {
+			if err := db.GetContext(ctx, owner, "SELECT * FROM owners WHERE access_token = ?", accessToken); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+					return
+				}
+				writeError(w, http.StatusInternalServerError, err)
 				return
 			}
-			writeError(w, http.StatusInternalServerError, err)
-			return
+			ownerCache.Set(accessToken, owner, cache.DefaultExpiration)
 		}
 
 		ctx = context.WithValue(ctx, "owner", owner)
@@ -73,14 +78,19 @@ func chairAuthMiddleware(next http.Handler) http.Handler {
 		}
 		accessToken := c.Value
 		chair := &Chair{}
-		err = db.GetContext(ctx, chair, "SELECT * FROM chairs WHERE access_token = ?", accessToken)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+		if cached, found := chairCache.Get(accessToken); found {
+			chair = cached.(*Chair)
+		} else {
+			err = db.GetContext(ctx, chair, "SELECT * FROM chairs WHERE access_token = ?", accessToken)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
+					return
+				}
+				writeError(w, http.StatusInternalServerError, err)
 				return
 			}
-			writeError(w, http.StatusInternalServerError, err)
-			return
+			chairCache.Set(accessToken, chair, cache.DefaultExpiration)
 		}
 
 		ctx = context.WithValue(ctx, "chair", chair)

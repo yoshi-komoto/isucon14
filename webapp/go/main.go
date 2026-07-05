@@ -21,6 +21,8 @@ import (
 
 var db *sqlx.DB
 var userCache = cache.New(5*time.Minute, 10*time.Minute)
+var ownerCache = cache.New(5*time.Minute, 10*time.Minute)
+var chairCache = cache.New(5*time.Minute, 10*time.Minute)
 
 func main() {
 	mux := setup()
