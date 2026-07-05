@@ -45,7 +45,7 @@ func requestPaymentGatewayPostPayment(ctx context.Context, paymentGatewayURL str
 			}
 			defer res.Body.Close()
 
-			if res.StatusCode >= 500 {
+			if res.StatusCode != http.StatusNoContent {
 				// エラーが返ってきても成功している場合があるので、社内決済マイクロサービスに問い合わせ
 				getReq, err := http.NewRequestWithContext(ctx, http.MethodGet, paymentGatewayURL+"/payments", bytes.NewBuffer([]byte{}))
 				if err != nil {
@@ -82,7 +82,7 @@ func requestPaymentGatewayPostPayment(ctx context.Context, paymentGatewayURL str
 			return nil
 		}()
 		if err != nil {
-			if retry < 1 {
+			if retry < 5 {
 				retry++
 				time.Sleep(100 * time.Millisecond)
 				continue
