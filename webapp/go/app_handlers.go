@@ -590,35 +590,35 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fare, err := calculateDiscountedFare(ctx, tx, ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	paymentGatewayRequest := &paymentGatewayPostPaymentRequest{
-		Amount: fare,
-	}
+	// fare, err := calculateDiscountedFare(ctx, tx, ride.UserID, ride, ride.PickupLatitude, ride.PickupLongitude, ride.DestinationLatitude, ride.DestinationLongitude)
+	// if err != nil {
+	// 	writeError(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
+	// paymentGatewayRequest := &paymentGatewayPostPaymentRequest{
+	// 	Amount: fare,
+	// }
 
-	var paymentGatewayURL = "http://172.31.33.88:12346"
+	// var paymentGatewayURL = "http://172.31.33.88:12346"
 	// if err := tx.GetContext(ctx, &paymentGatewayURL, "SELECT value FROM settings WHERE name = 'payment_gateway_url'"); err != nil { // DBから取る必要なさそう
 	// 	writeError(w, http.StatusInternalServerError, err)
 	// 	return
 	// }
 
-	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, paymentToken.Token, paymentGatewayRequest, func() ([]Ride, error) {
-		rides := []Ride{}
-		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE user_id = ? ORDER BY created_at ASC`, ride.UserID); err != nil {
-			return nil, err
-		}
-		return rides, nil
-	}); err != nil {
-		if errors.Is(err, erroredUpstream) {
-			writeError(w, http.StatusBadGateway, err)
-			return
-		}
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
+	// if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, paymentToken.Token, paymentGatewayRequest, func() ([]Ride, error) {
+	// 	rides := []Ride{}
+	// 	if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE user_id = ? ORDER BY created_at ASC`, ride.UserID); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	return rides, nil
+	// }); err != nil {
+	// 	if errors.Is(err, erroredUpstream) {
+	// 		writeError(w, http.StatusBadGateway, err)
+	// 		return
+	// 	}
+	// 	writeError(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	if err := tx.Commit(); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
