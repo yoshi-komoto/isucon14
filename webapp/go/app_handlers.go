@@ -571,7 +571,7 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE id = ?`, rideID); err != nil {
+	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE id = ?`, rideID); err != nil { // 2回目
 		if errors.Is(err, sql.ErrNoRows) {
 			writeError(w, http.StatusNotFound, errors.New("ride not found"))
 			return
@@ -599,11 +599,11 @@ func appPostRideEvaluatation(w http.ResponseWriter, r *http.Request) {
 		Amount: fare,
 	}
 
-	var paymentGatewayURL string
-	if err := tx.GetContext(ctx, &paymentGatewayURL, "SELECT value FROM settings WHERE name = 'payment_gateway_url'"); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
+	var paymentGatewayURL = "http://172.31.33.88:12346"
+	// if err := tx.GetContext(ctx, &paymentGatewayURL, "SELECT value FROM settings WHERE name = 'payment_gateway_url'"); err != nil { // DBから取る必要なさそう
+	// 	writeError(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	if err := requestPaymentGatewayPostPayment(ctx, paymentGatewayURL, paymentToken.Token, paymentGatewayRequest, func() ([]Ride, error) {
 		rides := []Ride{}
