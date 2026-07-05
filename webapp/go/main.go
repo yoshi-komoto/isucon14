@@ -10,14 +10,17 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/patrickmn/go-cache"
 )
 
 var db *sqlx.DB
+var userCache = cache.New(5*time.Minute, 10*time.Minute)
 
 func main() {
 	mux := setup()
