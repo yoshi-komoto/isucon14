@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-
-	"github.com/patrickmn/go-cache"
 )
 
 func appAuthMiddleware(next http.Handler) http.Handler {
@@ -19,19 +17,14 @@ func appAuthMiddleware(next http.Handler) http.Handler {
 		}
 		accessToken := c.Value
 		user := &User{}
-		if cached, found := userCache.Get(accessToken); found {
-			user = cached.(*User)
-		} else {
-			err = db.GetContext(ctx, user, "SELECT * FROM users WHERE access_token = ?", accessToken)
-			if err != nil {
-				if errors.Is(err, sql.ErrNoRows) {
-					writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
-					return
-				}
-				writeError(w, http.StatusInternalServerError, err)
+		err = db.GetContext(ctx, user, "SELECT * FROM users WHERE access_token = ?", accessToken)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(w, http.StatusUnauthorized, errors.New("invalid access token"))
 				return
 			}
-			userCache.Set(accessToken, user, cache.DefaultExpiration)
+			writeError(w, http.StatusInternalServerError, err)
+			return
 		}
 
 		ctx = context.WithValue(ctx, "user", user)
