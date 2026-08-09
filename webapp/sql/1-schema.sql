@@ -48,6 +48,18 @@ CREATE TABLE chair_locations
 )
   COMMENT = '椅子の現在位置情報テーブル';
 
+DROP TABLE IF EXISTS chair_last_locations;
+CREATE TABLE chair_last_locations
+(
+  chair_id       VARCHAR(26) NOT NULL COMMENT '椅子ID',
+  total_distance INTEGER     NOT NULL DEFAULT 0 COMMENT '累計移動距離',
+  latitude       INTEGER     NOT NULL COMMENT '最新緯度',
+  longitude      INTEGER     NOT NULL COMMENT '最新経度',
+  updated_at     DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '最終更新日時',
+  PRIMARY KEY (chair_id)
+)
+  COMMENT = '椅子の最新位置・累計距離テーブル';
+
 DROP TABLE IF EXISTS users;
 CREATE TABLE users
 (
