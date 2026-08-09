@@ -201,8 +201,8 @@ func ownerGetChairs(w http.ResponseWriter, r *http.Request) {
        access_token,
        model,
        is_active,
-       created_at,
-       updated_at,
+       chairs.created_at,
+       chairs.updated_at,
        IFNULL(distance_table.total_distance, 0) AS total_distance,
        distance_table.updated_at AS total_distance_updated_at
 FROM chairs
