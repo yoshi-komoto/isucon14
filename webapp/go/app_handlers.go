@@ -882,20 +882,56 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	rides := []*Ride{}
+	if err := tx.SelectContext(ctx, &rides, `
+SELECT rides.*
+FROM rides
+INNER JOIN chairs ON rides.chair_id = chairs.id
+WHERE chairs.is_active = TRUE
+ORDER BY rides.created_at DESC
+	`); err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	chairRidesMap := make(map[string][]*Ride)
+	for _, ride := range rides {
+		chairRidesMap[ride.ChairID.String] = append(chairRidesMap[ride.ChairID.String], ride)
+	}
+
+	// 最新の位置情報を取得
+	chairLocations := []ChairLocation{}
+	err = tx.SelectContext(
+		ctx,
+		&chairLocations,
+		`
+WITH ranked_locations AS (
+	SELECT *,
+		ROW_NUMBER() OVER (PARTITION BY chair_id ORDER BY created_at DESC) AS rn
+	FROM chair_locations
+)
+SELECT id, chair_id, latitude, longitude, created_at
+FROM ranked_locations WHERE rn = 1
+`,
+	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	chairLocationMap := make(map[string]ChairLocation)
+	for _, chairLocation := range chairLocations {
+		chairLocationMap[chairLocation.ChairID] = chairLocation
+	}
+
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
 	for _, chair := range chairs {
 		if !chair.IsActive {
 			continue
 		}
 
-		rides := []*Ride{}
-		if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY created_at DESC`, chair.ID); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-
 		skip := false
-		for _, ride := range rides {
+		currentChairRides := chairRidesMap[chair.ID]
+		for _, ride := range currentChairRides {
 			// 過去にライドが存在し、かつ、それが完了していない場合はスキップ
 			status, err := getLatestRideStatus(ctx, tx, ride.ID)
 			if err != nil {
@@ -911,14 +947,11 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// 最新の位置情報を取得
-		chairLocation := &ChairLocation{}
-		err = tx.GetContext(
-			ctx,
-			chairLocation,
-			`SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY created_at DESC LIMIT 1`,
-			chair.ID,
-		)
+		chairLocation, ok := chairLocationMap[chair.ID]
+		if !ok {
+			continue
+		}
+
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				continue
