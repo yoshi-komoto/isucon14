@@ -882,14 +882,15 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nearbyChairs := []appGetNearbyChairsResponseChair{}
-
-	type chairIdToRides struct {
-		ChairID string
-		Rides   []*Ride
-	}
 	rides := []*Ride{}
-	if err := tx.SelectContext(ctx, &rides, `SELECT * FROM rides ORDER BY created_at DESC`); err != nil {
+	if err := tx.SelectContext(ctx, &rides, `
+SELECT *
+FROM rides
+INNER JOIN
+  chairs ON rides.chair_id = chairs.id
+WHERE chairs.is_active = TRUE
+ORDER BY created_at DESC
+	`); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -899,11 +900,6 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 最新の位置情報を取得
-	type chairIdToChairLocation struct {
-		ChairID       string
-		ChairLocation *ChairLocation
-	}
-
 	chairLocations := []ChairLocation{}
 	err = tx.SelectContext(
 		ctx,
@@ -928,6 +924,7 @@ FROM ranked_locations WHERE rn = 1
 		chairLocationMap[chairLocation.ChairID] = chairLocation
 	}
 
+	nearbyChairs := []appGetNearbyChairsResponseChair{}
 	for _, chair := range chairs {
 		if !chair.IsActive {
 			continue
