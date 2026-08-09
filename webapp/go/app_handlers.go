@@ -918,6 +918,10 @@ SELECT id, chair_id, latitude, longitude, created_at
 FROM ranked_locations WHERE rn = 1
 `,
 	)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	chairLocationMap := make(map[string]ChairLocation)
 	for _, chairLocation := range chairLocations {
