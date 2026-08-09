@@ -886,8 +886,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	if err := tx.SelectContext(ctx, &rides, `
 SELECT rides.*
 FROM rides
-INNER JOIN
-  chairs ON rides.chair_id = chairs.id
+INNER JOIN chairs ON rides.chair_id = chairs.id
 WHERE chairs.is_active = TRUE
 ORDER BY rides.created_at DESC
 	`); err != nil {
