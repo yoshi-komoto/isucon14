@@ -884,12 +884,12 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 
 	rides := []*Ride{}
 	if err := tx.SelectContext(ctx, &rides, `
-SELECT *
+SELECT rides.*
 FROM rides
 INNER JOIN
   chairs ON rides.chair_id = chairs.id
 WHERE chairs.is_active = TRUE
-ORDER BY created_at DESC
+ORDER BY rides.created_at DESC
 	`); err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
